@@ -42,59 +42,46 @@ Given a query that matches no listings, the agent stops before calling
 
 ---
 
-## 3. Something about state
+## 3. State — the item passed through, not reconstructed
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know that the item your search found is the same item the
-     next tool received? Name something countable or observable.
-
-     This is the criterion people find hardest, because state failure doesn't
-     look like state failure — it looks like a tool problem. Something that
-     compares session["selected_item"] against what actually reached
-     suggest_outfit is the shape you're after. -->
-
-
+Given 5 different queries that each return at least one match, the `id` in
+`session["selected_item"]` is identical to the `id` of the listing object
+actually passed into `suggest_outfit` — in 5 of 5 tries.
 
 **Why this target:**
 
-
+The hand-off from `search_listings` to `suggest_outfit` is a plain dictionary
+reference with no transformation step in between — there's no legitimate
+source of noise that would excuse a mismatch, so it should hold every time.
 
 ---
 
-## 4. Something about the fit card
+## 4. Fit card — structural reliability despite wording variation
 
-<!-- YOU WRITE THIS ONE.
-
-     The fit card calls a model, so the same input can produce different words
-     each time. That's not a bug — it's the nature of the tool. So what would
-     make it acceptable?
-
-     Think about what you'd actually be unhappy to see. A caption that never
-     mentions the price? Two different items producing the same opening
-     sentence? A card longer than a caption anyone would post? Any of those can
-     be turned into a number. -->
-
-
+Given 5 different items, each resulting fit card is a non-empty caption of
+2–4 sentences that mentions the item's price at least once — in 5 of 5 tries.
 
 **Why this target:**
 
-
+`TEMPERATURE=0.9` means the exact wording is expected to differ run to run —
+that's by design, not a defect. But the length and the price mention are
+controlled by my prompt, not the model's creative discretion, so those two
+structural facts shouldn't be allowed to slip even while the phrasing varies.
 
 ---
 
-## 5. Your choice
+## 5. Search respects the price ceiling exactly
 
-<!-- YOU WRITE THIS ONE TOO.
-
-     Pick something you actually care about getting right. Speed, the empty
-     wardrobe path, what happens when the model can't be reached, whether the
-     search respects a price ceiling — anything, as long as it names a number
-     or an observable outcome. -->
-
-
+Given 5 queries that each specify a `max_price`, every listing returned in
+`search_results` has a `price` less than or equal to that ceiling — in 5 of 5
+tries.
 
 **Why this target:**
+
+This filter runs over static local data with no model call involved, so
+there's no randomness to account for — any violation would be a
+straightforward bug in the filter logic, not noise worth budgeting a miss
+for.
 
 
 
