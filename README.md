@@ -59,24 +59,26 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Searches `data/listings.json` for items whose title, description, and style tags overlap with the query's keywords, optionally narrowed by size and a price ceiling.
+- **Inputs:** `description` (str) — free-text keywords, e.g. `"vintage graphic tee"`. `size` (str | None) — a size token to match against a listing's `size` field, case-insensitively; `None` skips size filtering. `max_price` (float | None) — highest acceptable price, inclusive; `None` skips the price filter.
+- **Returns:** `list[dict]` — matching listing dicts (`id, title, description, category, style_tags, size, condition, price, colors, brand, platform`), sorted best keyword match first, capped at `config.SEARCH_RESULT_LIMIT`.
+- **When it has nothing:** returns `[]` — an empty list, never `None`, never an exception. This is what the loop branches on.
+
+**Size matching note:** listing sizes are inconsistent strings (`"W30 L30"`, `"S/M"`, `"XL (oversized)"`, plain numbers for shoes). A plain substring check is wrong — `"s" in "us 9"` and `"l" in "xl"` are both `True`. The rule: split both the listing's size and the query's size into tokens on non-alphanumeric characters (spaces, `/`, parentheses), lowercase them, and match if the query's token set intersects the listing's token set. `"S/M"` → `{"s","m"}`; a query size of `"M"` → `{"m"}` → match. `"XL (oversized)"` → `{"xl","oversized"}`; a query size of `"L"` → `{"l"}` → no match.
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Calls the model to propose one or two outfit combinations pairing the newly found item with pieces from the user's wardrobe.
+- **Inputs:** `new_item` (dict) — a listing dict, as returned by `search_listings`. `wardrobe` (dict) — a wardrobe dict with an `'items'` key holding a list of wardrobe item dicts; the list may be empty.
+- **Returns:** `str` — a non-empty string of outfit suggestions in natural language.
+- **When it has nothing:** if `wardrobe['items']` is empty, returns general styling advice for the item (still a non-empty string) instead of failing or returning `""`.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Writes a short, postable caption (2–4 sentences) for the item, built from the outfit suggestion.
+- **Inputs:** `outfit` (str) — the string returned by `suggest_outfit`. `new_item` (dict) — the listing dict for the item.
+- **Returns:** `str` — a 2–4 sentence caption that mentions the item, its price, and its platform once each, and is specific about the vibe.
+- **When it has nothing:** if `outfit` is empty or whitespace-only, returns a fixed fallback string (e.g. `"Couldn't write a caption — no outfit suggestion to build one from."`) rather than raising or returning `""`.
 
 ---
 
@@ -93,13 +95,13 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If `search_listings` returns an empty list, put a message in `session["error"]` naming what the user could change (loosen the price ceiling, drop the size filter, or try different keywords) and return the session — do not call `suggest_outfit` or `create_fit_card`. Otherwise, take the first (best-scoring) result as `session["selected_item"]` and continue on to `suggest_outfit`, then `create_fit_card`.
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** Regex. One pattern pulls a price ceiling out of phrases like `"under $30"` or `"below $45"` into `max_price`. A second pulls a size out of phrases like `"size M"` or `"size 8"` into `size`. Whatever text remains after stripping both matched fragments becomes `description`.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** `query` → `parsed` (`description`, `size`, `max_price`) → `search_results` → `selected_item` → (`selected_item` + `wardrobe`) → `outfit_suggestion` → (`outfit_suggestion` + `selected_item`) → `fit_card`. `error` is only set on the early-stop path, in which case `outfit_suggestion` and `fit_card` stay `None`.
 
 ---
 
