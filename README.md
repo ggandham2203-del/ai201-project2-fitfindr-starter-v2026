@@ -123,18 +123,46 @@ $ python app.py ask '...'
 
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
-
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'price': 18.0, 'size': 'S/M', ...},
+ {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'price': 24.0, 'size': 'L', ...},
+ {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'price': 15.0, 'size': 'S/M', ...},
+ {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'price': 19.0, 'size': 'L', ...},
+ {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'price': 27.0, 'size': 'W29', ...},
+ {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'price': 26.0, 'size': 'L', ...}]
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
+**Outfit 1: Casual Streetwear**
+Pair the vintage Levi's 501 jeans with the white ribbed tank top and chunky white sneakers, then layer
+on the vintage black denim jacket for a classic, effortless look. Complete the outfit with your black
+crossbody bag for easy everyday wear.
 
+**Outfit 2: Cozy & Relaxed**
+Tuck the oversized grey crewneck sweatshirt into the medium wash Levi's 501s and secure the waist with
+your brown leather belt. Finish off the look by pairing them with black combat boots for a
+grunge-inspired contrast.
+
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_empty_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_empty_wardrobe()))"
+These vintage Levi's 501s pair effortlessly with casual basics like a crisp white t-shirt, a classic
+crewneck sweatshirt, or an oversized flannel. Complement their medium wash and streetwear vibe with
+neutral earth tones, black, or heather gray, and finish the look with retro sneakers or leather boots.
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
+Obsessed with the wash on these vintage Levi's 501 jeans — the exact slouchy, broken-in fit we're all
+hunting for right now. Throw them on with some beat-up white sneakers and an oversized tee for that
+effortless 90s off-duty look. Grab this pair on Depop for just $38 before I change my mind and keep them.
 
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('', load_listings()[0]))"
+Couldn't write a caption — no outfit suggestion to build one from.
 ```
+
+Note: running `create_fit_card` twice on the identical item + outfit string returned the identical
+caption both times — that's `CACHE_ENABLED` reusing the first answer while building (documented
+behavior), not a sign `TEMPERATURE` isn't working. Real variation across 5 tries gets checked in unit 4
+with the cache off via `run_eval.py`.
 
 ---
 
