@@ -39,7 +39,13 @@
 
 ## What This Does
 
-<!-- Three or four sentences: what a user asks for, and what they get back. -->
+A user describes what they're looking for in plain language — e.g. "vintage graphic tee under $30,
+size M" — and FitFindr searches the listings data, picks the best match, and figures out what it would
+go with. It returns the matching item (title, price, platform), one or two outfit ideas built from the
+user's own wardrobe (or general styling advice if they haven't saved one), and a short caption they
+could actually post about the find. If nothing in the data matches what they asked for, it says so
+instead of guessing, and tells them what to change — a wider price range, a different size, or
+different keywords.
 
 
 
@@ -115,8 +121,25 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ python app.py ask 'vintage graphic tee under $30'
 
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   **Outfit 1: Y2K Streetwear Edge**
+Pair the Y2K butterfly baby tee with your baggy straight-leg dark wash jeans and chunky white sneakers
+for a classic noughties silhouette. Layer your black cropped zip hoodie overtop unzipped to tie the
+streetwear aesthetic together.
+
+**Outfit 2: Casual Contrast**
+Combine the fitted baby tee with your wide-leg khaki trousers and brown leather belt for an effortless
+mix of earth tones and playful Y2K style. Finish the look with your black combat boots to add a touch
+of grunge contrast to the sweet butterfly graphic.
+
+  Fit card: the cutest lil butterfly baby tee to channel your inner 2000s pop star. honestly looks so
+good with baggy denim or paired with grunge combat boots for that exact contrast. snag this thrifted
+find on depop right now for just $18.0!
+
+0 model calls this session, 2 served from cache
 ```
 
 **The three tools, tested one at a time**
@@ -177,15 +200,24 @@ with the cache off via `run_eval.py`.
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* Help specifying and building `search_listings`' size filter.
+- *What came back:* Claude pointed out that a plain substring check would misfire on this data —
+  `"L"` would match inside `"XL"`, and `"S"` would match inside a shoe size like `"US 9"` if the digits
+  ever lined up — something I hadn't caught from skimming the listings.
+- *What I changed:* I had it implement size matching by tokenizing both the query size and the
+  listing's size on non-alphanumeric characters and comparing token sets, instead of a substring check —
+  confirmed by testing that a `size="M"` query excludes a `"XL (oversized)"` listing.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* To test `create_fit_card` by running it twice on the same item and outfit.
+- *What came back:* Both runs returned a word-for-word identical caption, which looked like
+  `TEMPERATURE` wasn't doing anything. Claude traced it to `CACHE_ENABLED` instead — `generate()`
+  reuses the cached response for an identical prompt while building, which is documented behavior in
+  `generate.py`, not a broken temperature setting.
+- *What I changed:* I didn't change the code — I added a note in the Sample Run section explaining the
+  identical output so it doesn't get misread later, and left the real variability check for unit 4's
+  `run_eval.py`, which turns the cache off.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
