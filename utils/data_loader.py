@@ -16,6 +16,10 @@ def load_listings() -> list[dict]:
     """
     Load all mock listings from the dataset.
 
+    Every listing returned is guaranteed to have all of the fields below —
+    see _normalize_listing() for why that's done here rather than left to
+    whichever tool happens to read the data next.
+
     Returns:
         A list of listing dictionaries. Each listing has the following fields:
         - id (str)
@@ -32,7 +36,37 @@ def load_listings() -> list[dict]:
     """
     path = os.path.join(_DATA_DIR, "listings.json")
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        raw = json.load(f)
+    return [_normalize_listing(listing) for listing in raw]
+
+
+# Unit 4: last unit's feedback pointed out that search_listings indexed these
+# fields directly while suggest_outfit read the same kind of record with
+# .get() fallbacks — mixed assumptions about whether the data is complete.
+# Rather than scatter .get() calls through every tool that reads a listing,
+# the shape is validated once, here, at the boundary where the data enters
+# the program. A listing missing a field (price, say) used to crash
+# search_listings with a raw KeyError; now it gets this default instead, and
+# every tool downstream can index listings directly, trusting the shape.
+_LISTING_DEFAULTS = {
+    "title": "(untitled listing)",
+    "description": "",
+    "category": "",
+    "style_tags": [],
+    "size": "",
+    "condition": "unknown",
+    "price": 0.0,
+    "colors": [],
+    "brand": None,
+    "platform": "",
+}
+
+
+def _normalize_listing(listing: dict) -> dict:
+    """Fill in any field missing from a raw listing record with a safe default."""
+    normalized = dict(_LISTING_DEFAULTS)
+    normalized.update(listing)
+    return normalized
 
 
 def load_wardrobe_schema() -> dict:

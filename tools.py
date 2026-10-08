@@ -105,7 +105,7 @@ def search_listings(
                 continue
 
         haystack = _tokens(listing["title"]) | _tokens(listing["description"])
-        for tag in listing.get("style_tags", []):
+        for tag in listing["style_tags"]:
             haystack |= _tokens(tag)
 
         score = len(query_words & haystack)
@@ -148,10 +148,15 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
+    # new_item is a listing dict, normalized by load_listings() to always
+    # have these fields — direct indexing here, matching search_listings,
+    # since this boundary is already validated. (The wardrobe below is a
+    # separate, user-controlled data source, so it keeps .get() fallbacks —
+    # that's a different boundary, not the same inconsistency.)
     item_desc = (
-        f"{new_item.get('title')} — {new_item.get('description')} "
-        f"(category: {new_item.get('category')}, colors: {', '.join(new_item.get('colors') or [])}, "
-        f"style: {', '.join(new_item.get('style_tags') or [])}, price: ${new_item.get('price')})"
+        f"{new_item['title']} — {new_item['description']} "
+        f"(category: {new_item['category']}, colors: {', '.join(new_item['colors'])}, "
+        f"style: {', '.join(new_item['style_tags'])}, price: ${new_item['price']})"
     )
 
     items = wardrobe.get("items") or []
@@ -220,13 +225,15 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     if not outfit or not outfit.strip():
         return "Couldn't write a caption — no outfit suggestion to build one from."
 
+    # Same reasoning as suggest_outfit: new_item is a normalized listing
+    # dict, so direct indexing is safe and consistent with search_listings.
     prompt = (
         f"Write a short caption (2-4 sentences) someone would actually post on "
         f"a resale app about this thrifted find:\n\n"
-        f"Item: {new_item.get('title')}\n"
-        f"Price: ${new_item.get('price')}\n"
-        f"Platform: {new_item.get('platform')}\n"
-        f"Style: {', '.join(new_item.get('style_tags') or [])}\n\n"
+        f"Item: {new_item['title']}\n"
+        f"Price: ${new_item['price']}\n"
+        f"Platform: {new_item['platform']}\n"
+        f"Style: {', '.join(new_item['style_tags'])}\n\n"
         f"Outfit idea to work in: {outfit}\n\n"
         f"Mention the item, its price, and its platform once each. Read like a "
         f"real caption, not a product listing — be specific about the vibe, "
