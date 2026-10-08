@@ -17,7 +17,8 @@ import re
 
 import config
 import trace
-from tools import search_listings, suggest_outfit, create_fit_card
+from mcp_client import call_tool
+from tools import suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 
 
@@ -152,15 +153,17 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     trace.check_iterations(count)
     parsed = parse_query(query)
     session["parsed"] = parsed
+    trace.step("parse_query", inputs={"query": query}, returned=parsed)
 
-    # 2. Search. THIS IS THE BRANCH.
+    # 2. Search, via MCP. THIS IS THE BRANCH.
     count += 1
     trace.check_iterations(count)
-    results = search_listings(
-        description=parsed["description"],
-        size=parsed["size"],
-        max_price=parsed["max_price"],
-    )
+    search_inputs = {
+        "description": parsed["description"],
+        "size": parsed["size"],
+        "max_price": parsed["max_price"],
+    }
+    results = call_tool("search_listings", search_inputs)
     session["search_results"] = results
 
     if not results:
@@ -177,19 +180,64 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             f"No listings matched \"{parsed['description']}\"{price_note}{size_note}. "
             f"Try {', or '.join(suggestions)}."
         )
+        trace.step(
+            "search_listings (via MCP)",
+            inputs=search_inputs,
+            returned=results,
+            note="branch: empty, stopping before suggest_outfit",
+        )
         return session
+
+    trace.step(
+        "search_listings (via MCP)",
+        inputs=search_inputs,
+        returned=results,
+        note="branch: results found, continuing to suggest_outfit",
+    )
 
     # 3. Pick the best-scoring result and hand it to suggest_outfit.
     session["selected_item"] = results[0]
 
     count += 1
     trace.check_iterations(count)
-    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe)
+    outfit_inputs = {
+        "new_item": session["selected_item"].get("title"),
+        "wardrobe_items": len(wardrobe.get("items") or []),
+    }
+    try:
+        session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe)
+    except ModelUnavailable as exc:
+        session["error"] = f"Couldn't reach the styling model to suggest an outfit: {exc}"
+        trace.step(
+            "suggest_outfit",
+            inputs=outfit_inputs,
+            returned=None,
+            note="branch: model unavailable, stopping before create_fit_card",
+        )
+        return session
+
+    trace.step("suggest_outfit", inputs=outfit_inputs, returned=session["outfit_suggestion"])
 
     # 4. Turn the outfit + item into a caption.
     count += 1
     trace.check_iterations(count)
-    session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
+    card_inputs = {
+        "outfit": session["outfit_suggestion"],
+        "new_item": session["selected_item"].get("title"),
+    }
+    try:
+        session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
+    except ModelUnavailable as exc:
+        session["error"] = f"Couldn't reach the captioning model to write a fit card: {exc}"
+        trace.step(
+            "create_fit_card",
+            inputs=card_inputs,
+            returned=None,
+            note="branch: model unavailable, stopping",
+        )
+        return session
+
+    trace.step("create_fit_card", inputs=card_inputs, returned=session["fit_card"])
 
     return session
 
