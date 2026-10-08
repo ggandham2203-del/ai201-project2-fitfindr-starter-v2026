@@ -35,18 +35,50 @@ SCENARIOS = [
         "wardrobe": "empty",
         "criterion": None,
     },
-    # TODO: add what your criteria 3, 4 and 5 need.
+
+    # Criteria 3, 4, and 5 all say "5 different queries" / "5 different
+    # items" — not "the same query 5 times" like criteria 1 and 2. So these
+    # five scenarios each use a different, distinctive query that (checked
+    # against data/listings.json by hand) scores clearly highest for one
+    # specific listing, with no other listing close behind. Each also
+    # specifies a different max_price, so the same five runs double as
+    # evidence for criterion 5 (price ceiling respected).
     #
-    # Set "criterion" to the number in criteria.md that the scenario tests.
-    # "criterion": None means a diagnostic run — useful to have, but it isn't
-    # one of your five, and run_eval.py marks it as such in the table.
-    #
-    # For a state criterion, any normal query works — what you're checking is
-    # what ends up in the session, not what the user typed.
-    #
-    # For a fit-card criterion, you probably want the SAME query listed more
-    # than once, or several different items, depending on what your criterion
-    # actually says.
+    # Rather than writing three separate batches of five queries each (15
+    # scenarios, ~3x the model calls for no real benefit), these five are
+    # reused for all three criteria: the "criterion" field is set to 3, but
+    # the README manually builds the criterion-4 and criterion-5 rows from
+    # this same output too — see the Run Log for how each row is read.
+    {
+        "name": "diverse item 1 — leather bomber",
+        "query": "leather bomber jacket under $80",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        "name": "diverse item 2 — silk button-down",
+        "query": "silk button-down sage green under $35",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        "name": "diverse item 3 — velvet blazer",
+        "query": "velvet blazer emerald green under $60",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        "name": "diverse item 4 — crochet halter top",
+        "query": "crochet halter top under $25",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        "name": "diverse item 5 — suede chelsea boots",
+        "query": "suede chelsea boots tan under $50",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
 ]
 
 WARDROBES = ("example", "empty")
